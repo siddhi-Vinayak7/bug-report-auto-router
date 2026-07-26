@@ -69,6 +69,15 @@ class CorrectionResponse(BaseModel):
 
 
 # Endpoints
+@app.get("/")
+def root():
+    return {
+        "status": "online",
+        "message": "Bug Report Auto-Router API is running",
+        "endpoints": ["/api/health", "/api/triage", "/api/correct"],
+    }
+
+
 @app.get("/api/health")
 def health_check():
     return {"status": "ok"}
