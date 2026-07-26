@@ -1,0 +1,21 @@
+id,report_text,module,severity
+3,App logs me out randomly every few minutes,Auth,Critical
+8,Can create account with password shorter than the stated minimum,Auth,Minor
+12,Users can log in with an old password after changing it,Auth,Critical
+14,Logout button doesn't clear session on shared device,Auth,Critical
+17,Sent messages don't show up for the recipient until app restart,Chat,Critical
+23,Read receipts show 'seen' even when the other person hasn't opened the chat,Chat,Minor
+27,Blocked users can still send messages that appear in the inbox,Chat,Major
+31,Deleted tasks reappear after refreshing the task board,Tasks,Critical
+35,Task comments section doesn't notify assignees when someone replies,Tasks,Minor
+40,Kanban board columns don't sync task status changes in real time,Tasks,Major
+42,Changing display name doesn't update it in old chat messages,Profile,Minor
+49,Profile visibility toggle (public/private) doesn't actually restrict access,Profile,Critical
+52,Deleting account from profile settings doesn't actually delete data,Profile,Critical
+58,Refund request submitted twice charges the card twice,Payments,Critical
+61,Free trial doesn't convert to paid plan automatically at expiry,Payments,Major
+66,Saved card details disappear after updating expiry date,Payments,Minor
+68,Dark mode toggle doesn't apply to modal popups,Other,Minor
+71,Notification bell icon shows a count but the dropdown is empty,Other,Minor
+76,Offline mode doesn't sync changes once connection is restored,Other,Critical
+79,Accessibility screen reader skips over button labels,Other,Major
