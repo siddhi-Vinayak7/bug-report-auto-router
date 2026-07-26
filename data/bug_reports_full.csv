@@ -1,0 +1,81 @@
+id,report_text,module,severity
+1,Login fails with 'invalid credentials' even when password is correct,Auth,Major
+2,Password reset email never arrives,Auth,Major
+3,App logs me out randomly every few minutes,Auth,Critical
+4,Two-factor authentication code always shows as expired,Auth,Critical
+5,Sign up form accepts empty email field,Auth,Minor
+6,Google OAuth login button does nothing on click,Auth,Critical
+7,Session doesn't persist after closing and reopening browser,Auth,Major
+8,Can create account with password shorter than the stated minimum,Auth,Minor
+9,Account gets locked after one failed login attempt instead of five,Auth,Major
+10,Forgot password link redirects to a 404 page,Auth,Major
+11,Username field allows special characters that break login later,Auth,Minor
+12,Users can log in with an old password after changing it,Auth,Critical
+13,Captcha on signup page never loads,Auth,Major
+14,Logout button doesn't clear session on shared device,Auth,Critical
+15,Messages sometimes arrive out of order in group chats,Chat,Major
+16,Typing indicator gets stuck showing 'user is typing' forever,Chat,Minor
+17,Sent messages don't show up for the recipient until app restart,Chat,Critical
+18,Emoji reactions disappear after refreshing the page,Chat,Minor
+19,Chat notifications don't fire when app is in background,Chat,Major
+20,Can't delete a message I sent by mistake,Chat,Minor
+21,Group chat crashes when more than 20 people are added,Chat,Critical
+22,File attachments in chat fail to upload over 5MB,Chat,Major
+23,Read receipts show 'seen' even when the other person hasn't opened the chat,Chat,Minor
+24,Chat search doesn't find messages older than a week,Chat,Major
+25,"Voice messages don't play, just show a spinning loader",Chat,Critical
+26,New chat window doesn't scroll to the latest message automatically,Chat,Minor
+27,Blocked users can still send messages that appear in the inbox,Chat,Major
+28,Task due dates reset to today after editing any other field,Tasks,Major
+29,Can't assign a task to more than one person,Tasks,Minor
+30,Marking a subtask complete doesn't update the parent task progress bar,Tasks,Major
+31,Deleted tasks reappear after refreshing the task board,Tasks,Critical
+32,Drag and drop to reorder tasks doesn't save the new order,Tasks,Major
+33,Task priority dropdown is missing the 'Urgent' option,Tasks,Minor
+34,Recurring tasks stop generating new instances after the first occurrence,Tasks,Critical
+35,Task comments section doesn't notify assignees when someone replies,Tasks,Minor
+36,Bulk task deletion deletes tasks from other projects too,Tasks,Critical
+37,Task checklist items can't be reordered by dragging,Tasks,Minor
+38,Filtering tasks by assignee shows tasks from removed team members,Tasks,Major
+39,"Task attachments don't download, link is broken",Tasks,Major
+40,Kanban board columns don't sync task status changes in real time,Tasks,Major
+41,Profile picture upload fails silently with no error message,Profile,Major
+42,Changing display name doesn't update it in old chat messages,Profile,Minor
+43,Bio field truncates text after 100 characters without warning,Profile,Minor
+44,Profile page shows wrong join date for the account,Profile,Minor
+45,Can't remove a linked social account from profile settings,Profile,Minor
+46,Avatar image gets cropped incorrectly on mobile view,Profile,Minor
+47,Email address field in profile settings is not editable,Profile,Major
+48,Timezone setting in profile doesn't apply to task due dates,Profile,Major
+49,Profile visibility toggle (public/private) doesn't actually restrict access,Profile,Critical
+50,Uploading a new avatar sometimes shows the old one for other users,Profile,Minor
+51,Profile settings page doesn't save changes unless you refresh first,Profile,Major
+52,Deleting account from profile settings doesn't actually delete data,Profile,Critical
+53,Job title field in profile overlaps with the name field on small screens,Profile,Minor
+54,Credit card payment fails but the amount still gets deducted,Payments,Critical
+55,Invoice PDF download button is broken,Payments,Major
+56,Subscription renews at the wrong price after a promo code expires,Payments,Major
+57,"Can't update billing address, form doesn't save",Payments,Major
+58,Refund request submitted twice charges the card twice,Payments,Critical
+59,Payment confirmation email never arrives after successful checkout,Payments,Major
+60,Currency selector doesn't change displayed prices on checkout,Payments,Minor
+61,Free trial doesn't convert to paid plan automatically at expiry,Payments,Major
+62,Applying a discount code shows wrong final total before payment,Payments,Critical
+63,Payment history page shows transactions from a different account,Payments,Critical
+64,Cancel subscription button just spins and never completes,Payments,Major
+65,Tax calculation is wrong for international billing addresses,Payments,Major
+66,Saved card details disappear after updating expiry date,Payments,Minor
+67,App becomes very slow after being open for more than an hour,Other,Major
+68,Dark mode toggle doesn't apply to modal popups,Other,Minor
+69,Export to CSV button downloads an empty file,Other,Major
+70,Search bar returns no results for queries with special characters,Other,Major
+71,Notification bell icon shows a count but the dropdown is empty,Other,Minor
+72,App crashes on startup on certain older Android devices,Other,Critical
+73,Keyboard shortcuts stop working after using the app for a while,Other,Minor
+74,Help center links open a blank page,Other,Minor
+75,Language switched to Spanish resets back to English after reload,Other,Minor
+76,Offline mode doesn't sync changes once connection is restored,Other,Critical
+77,Onboarding tutorial gets stuck on step 3 for new users,Other,Major
+78,Print view cuts off content on the right side of the page,Other,Minor
+79,Accessibility screen reader skips over button labels,Other,Major
+80,General settings page takes over 10 seconds to load,Other,Major
