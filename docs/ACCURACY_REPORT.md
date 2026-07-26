@@ -8,6 +8,8 @@ training data. Each classifier was trained on 60 labeled bug reports
 reports (`data/bug_reports_test.csv`) that was locked in its own git commit before any 
 model code was written, and was never viewed or used during training or tuning.
 
+Hyperparameters (C for both classifiers) were selected via 5-fold stratified cross-validation on the 60-row training set only. The test set was not consulted during this process. evaluate.py was then run exactly once against the locked 20-row test set to produce the final numbers below. Notably, cross-validation confirmed C=0.5 as optimal for both classifiers, and the resulting test accuracy (55.00% module, 40.00% severity) matches the previously reported figures, indicating the results are stable across reasonable hyperparameter choices.
+
 ## Results
 
 | Field    | Accuracy |
@@ -44,3 +46,5 @@ prediction, that correction is logged to the database. Over time, this correctio
 is a far more valuable and realistic training signal than the initial 60-example dataset, 
 since it reflects real bug reports and real disagreements about severity — the exact 
 kind of judgment calls a static training set can't fully capture in 60 rows.
+
+Every confirmation on the frontend writes a row to the corrections table, with NULL in a field meaning the human accepted the model's prediction for that field, and a non-NULL value meaning the human overrode it. This lets us compute both a per-field agreement rate and isolate genuine corrections for future retraining.
