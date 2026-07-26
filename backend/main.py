@@ -5,7 +5,7 @@ from typing import Optional
 
 from fastapi import Depends, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
 # Add classifier directory to Python path so we can import predict_module and predict_severity
@@ -29,10 +29,13 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="Bug Report Auto-Router API", lifespan=lifespan)
 
-# CORS middleware enabling all origins
+# CORS middleware enabling specific origins
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=[
+        "https://bug-report-auto-router.vercel.app",
+        "http://localhost:5173",
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -41,7 +44,7 @@ app.add_middleware(
 
 # Pydantic Schemas
 class TriageRequest(BaseModel):
-    report_text: str
+    report_text: str = Field(..., max_length=2000)
 
 
 class TriageResponse(BaseModel):
@@ -102,6 +105,10 @@ def triage_report(payload: TriageRequest, db: Session = Depends(get_db)):
 
 @app.post("/api/correct", response_model=CorrectionResponse)
 def log_correction(payload: CorrectionRequest, db: Session = Depends(get_db)):
+    report = db.query(Report).filter(Report.id == payload.report_id).first()
+    if not report:
+        raise HTTPException(status_code=404, detail="report_id not found")
+
     db_correction = Correction(
         report_id=payload.report_id,
         original_module=payload.original_module,
