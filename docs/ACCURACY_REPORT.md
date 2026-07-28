@@ -48,3 +48,46 @@ since it reflects real bug reports and real disagreements about severity — the
 kind of judgment calls a static training set can't fully capture in 60 rows.
 
 Every confirmation on the frontend writes a row to the corrections table, with NULL in a field meaning the human accepted the model's prediction for that field, and a non-NULL value meaning the human overrode it. This lets us compute both a per-field agreement rate and isolate genuine corrections for future retraining.
+
+## Alternative Model Comparison: SVM
+
+A LinearSVC (SVM) comparison was run after the Logistic Regression baseline was locked, using identical TF-IDF settings (`stop_words='english'`, `ngram_range=(1,2)`, `sublinear_tf=True`) and `class_weight='balanced'`. The C hyperparameter was selected via the same 5-fold StratifiedKFold procedure on the 60-row training set only, using the same candidate set [0.5, 1.0, 2.0, 5.0]. The test set was not consulted during this stage.
+
+### CV Results (training set only)
+
+**Module classifier (LinearSVC)**
+
+| C   | Mean CV Accuracy | Std    |
+|-----|-----------------|--------|
+| 0.5 | 58.33%          | 0.0527 |
+| **1.0** ✓ | **60.00%** | 0.0624 |
+| 2.0 | 60.00%          | 0.0624 |
+| 5.0 | 60.00%          | 0.0624 |
+
+Locked C = **1.0** (first candidate to reach the best mean; C=2.0 and C=5.0 tied but were not preferred).
+
+**Severity classifier (LinearSVC)**
+
+| C   | Mean CV Accuracy | Std    |
+|-----|-----------------|--------|
+| 0.5 | 41.67%          | 0.0913 |
+| 1.0 | 43.33%          | 0.1106 |
+| 2.0 | 43.33%          | 0.1106 |
+| **5.0** ✓ | **45.00%** | 0.1354 |
+
+Locked C = **5.0**.
+
+### Final Test Set Comparison (one-shot, 20 samples)
+
+| Field    | Logistic Regression | LinearSVC (SVM) | Δ       |
+|----------|--------------------:|----------------:|--------:|
+| Module   | 55.00%              | 60.00%          | +5.00% |
+| Severity | 40.00%              | 40.00%          | 0.00% (tie) |
+
+### Analysis
+
+SVM improved module accuracy by one correct prediction (5 percentage points) on this 20-row test set, and tied on severity. Despite the module improvement, Logistic Regression remains the deployed production model: the dataset is too small (20 test samples) for a single-prediction gain to be statistically conclusive, and switching algorithms this late in the project was not worth the redeployment risk for an ambiguous result.
+
+Notably, both classifiers — regardless of algorithm — recorded 0% recall on the "Other" module category. This is consistent across both models and is most likely due to "Other" acting as a catch-all with no consistent or distinctive vocabulary, combined with too few training examples for that class (~10 rows) to provide a reliable signal.
+
+The SVM comparison scripts and model files (`module_classifier_svm.py`, `severity_classifier_svm.py`, `evaluate_svm.py`, `module_model_svm.pkl`, `severity_model_svm.pkl`) are retained in `classifier/` for reference but are not loaded by the production backend.
