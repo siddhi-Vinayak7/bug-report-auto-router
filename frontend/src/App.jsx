@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import Header from './components/Header';
 import TriageForm from './components/TriageForm';
 import PredictionPanel from './components/PredictionPanel';
+import ModelInfo from './components/ModelInfo';
 import { triageReport } from './api';
 import { Database, ShieldAlert, GitCommit, Sparkles } from 'lucide-react';
 
@@ -66,6 +67,9 @@ export default function App() {
             />
           )}
         </div>
+
+        {/* Model Info Panel */}
+        <ModelInfo />
 
         {/* Workflow Info Footer / Features */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-4 border-t border-[#E2E5EA]">
