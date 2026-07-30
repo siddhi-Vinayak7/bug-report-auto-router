@@ -113,3 +113,13 @@ SVM improved module accuracy by one correct prediction (5 percentage points) on 
 Notably, both classifiers — regardless of algorithm — recorded 0% recall on the "Other" module category. This is consistent across both models and is most likely due to "Other" acting as a catch-all with no consistent or distinctive vocabulary, combined with too few training examples for that class (~10 rows) to provide a reliable signal.
 
 The SVM comparison scripts and model files (`module_classifier_svm.py`, `severity_classifier_svm.py`, `evaluate_svm.py`, `module_model_svm.pkl`, `severity_model_svm.pkl`) are retained in `classifier/` for reference but are not loaded by the production backend.
+
+## Additional Features (Post-Feedback)
+
+Three production enhancements were added based on system review feedback:
+
+1. **Prediction Explainability**: The `/api/triage` endpoint now returns `module_reason_words` and `severity_reason_words` representing the top contributing terms behind each prediction. These signal words are calculated by multiplying each present n-gram's TF-IDF weight by its corresponding Logistic Regression model coefficient for the predicted class, returning the top 3 positive contributors. This makes ML routing decisions interpretable to users rather than acting as a black box.
+
+2. **Department Routing**: Predictions include a `routed_team` field derived from a static mapping of predicted modules to engineering teams (e.g., Auth → Identity & Access Team, Chat → Messaging Team, Tasks → Workflow Team, Profile → Account Team, Payments → Billing Team, Other → General Engineering). This provides explicit team ownership for triaged reports without requiring a separate classifier.
+
+3. **Input Validity Checking & Low-Confidence Flagging**: `/api/triage` includes heuristic validation checks that reject input text under 10 characters or text where a single character represents >70% of content (gibberish), returning HTTP 400 with a descriptive error. Additionally, when both module and severity prediction confidence scores fall below 15%, a `low_confidence_flag` is returned, which the UI surfaces as a non-blocking warning suggesting manual review.
