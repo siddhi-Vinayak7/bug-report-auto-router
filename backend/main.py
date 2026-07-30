@@ -42,6 +42,16 @@ app.add_middleware(
 )
 
 
+MODULE_TEAM_MAP = {
+    "Auth": "Identity & Access Team",
+    "Chat": "Messaging Team",
+    "Tasks": "Workflow Team",
+    "Profile": "Account Team",
+    "Payments": "Billing Team",
+    "Other": "General Engineering",
+}
+
+
 # Pydantic Schemas
 class TriageRequest(BaseModel):
     report_text: str = Field(..., max_length=2000)
@@ -55,6 +65,7 @@ class TriageResponse(BaseModel):
     severity_confidence: float
     module_reason_words: list[str] = Field(default_factory=list)
     severity_reason_words: list[str] = Field(default_factory=list)
+    routed_team: str = "General Engineering"
 
 
 class CorrectionRequest(BaseModel):
@@ -95,6 +106,7 @@ def triage_report(payload: TriageRequest, db: Session = Depends(get_db)):
     severity_pred, severity_conf = predict_severity(text)
     module_reasons = get_module_reason_words(text, top_n=3)
     severity_reasons = get_severity_reason_words(text, top_n=3)
+    routed_team = MODULE_TEAM_MAP.get(module_pred, "General Engineering")
 
     db_report = Report(
         report_text=text,
@@ -115,6 +127,7 @@ def triage_report(payload: TriageRequest, db: Session = Depends(get_db)):
         severity_confidence=db_report.severity_confidence,
         module_reason_words=module_reasons,
         severity_reason_words=severity_reasons,
+        routed_team=routed_team,
     )
 
 

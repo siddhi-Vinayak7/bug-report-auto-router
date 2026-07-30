@@ -13,7 +13,8 @@ export default function PredictionPanel({ triageResult, reportText, onReset }) {
     module_confidence: moduleConfidence,
     severity_confidence: severityConfidence,
     module_reason_words: moduleReasonWords = [],
-    severity_reason_words: severityReasonWords = []
+    severity_reason_words: severityReasonWords = [],
+    routed_team: routedTeam = 'General Engineering'
   } = triageResult;
 
   const [selectedModule, setSelectedModule] = useState(predictedModule);
@@ -191,6 +192,14 @@ export default function PredictionPanel({ triageResult, reportText, onReset }) {
                     <span className="font-mono font-medium">Key signal words: </span>
                     <span className="font-mono font-semibold text-[#4F46E5]">
                       {moduleReasonWords.join(', ')}
+                    </span>
+                  </div>
+                )}
+                {routedTeam && (
+                  <div className="mt-1.5 text-xs text-[#5B6072]">
+                    <span className="font-mono font-medium">Routes to: </span>
+                    <span className="font-mono font-semibold text-[#1A1D29]">
+                      {routedTeam}
                     </span>
                   </div>
                 )}
