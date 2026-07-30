@@ -3,7 +3,7 @@ const API_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000';
 /**
  * Submits bug report text for ML classification & database storage.
  * @param {string} reportText 
- * @returns {Promise<{report_id: number, module: string, severity: string, module_confidence: number, severity_confidence: number, module_reason_words?: string[], severity_reason_words?: string[]}>}
+ * @returns {Promise<{report_id: number, module: string, severity: string, module_confidence: number, severity_confidence: number, module_reason_words?: string[], severity_reason_words?: string[], routed_team?: string}>}
  */
 export async function triageReport(reportText) {
   const response = await fetch(`${API_URL}/api/triage`, {
