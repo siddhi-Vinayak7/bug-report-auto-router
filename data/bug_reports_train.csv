@@ -59,3 +59,43 @@ id,report_text,module,severity
 77,Onboarding tutorial gets stuck on step 3 for new users,Other,Major
 78,Print view cuts off content on the right side of the page,Other,Minor
 80,General settings page takes over 10 seconds to load,Other,Major
+81,Auth token expires abruptly after 2 minutes instead of adhering to the configured 24-hour expiration window.,Auth,Major
+82,Clicking 'Remember Me' on the sign-in prompt fails to keep the user authenticated when reopening the app.,Auth,Minor
+83,Enterprise SAML single sign-on assertion fails with an unhandled exception when identity provider attributes contain uppercase domain names.,Auth,Critical
+84,User receives a generic 500 error instead of a helpful error message when entering an invalid multi-factor verification code.,Auth,Minor
+85,Mobile app stays logged in even after the user revokes all active security sessions from the web security dashboard.,Auth,Critical
+86,"Magic-link verification email takes over 45 minutes to arrive in the user inbox, rendering the temporary authentication key expired.",Auth,Major
+87,Session cookie is missing the HttpOnly and Secure flags when issued in production.,Auth,Major
+88,Unread message badges on conversation threads do not clear after viewing the latest posts.,Chat,Minor
+89,Mentioning a user with @name in a channel doesn't trigger a push notification or highlight the mention text.,Chat,Major
+90,Rapidly sending multiple images in a direct message thread freezes the chat window completely.,Chat,Critical
+91,Thread replies are appended to the main channel stream instead of grouping inside the side panel thread view.,Chat,Major
+92,Editing a sent message removes formatted code blocks and renders them as plain unformatted strings.,Chat,Minor
+93,Direct message history drops all messages prior to the current month when scrolling up in a long conversation.,Chat,Major
+94,User online status indicator flickers rapidly between active and offline while viewing an active channel.,Chat,Minor
+95,Moving a task card across kanban columns fails to update its status attribute in the database until hard page refresh.,Tasks,Major
+96,Adding a tag to a work item duplicates existing tags in the card metadata list.,Tasks,Minor
+97,Setting a task dependency cycle (Task A depends on Task B and vice versa) crashes the project board view with a maximum recursion error.,Tasks,Critical
+98,Task description text area strips all paragraph breaks and bullet points upon saving.,Tasks,Minor
+99,Archiving a completed milestone accidentally archives all active tasks assigned to that milestone without asking for user confirmation.,Tasks,Critical
+100,Story point estimations reset to zero whenever a task is reassigned to another team member.,Tasks,Major
+101,Custom fields added to a task template do not appear when creating a new task from that template.,Tasks,Major
+102,Updating display name in account preferences throws an API validation error if the name contains accented characters.,Profile,Major
+103,User role title on the public profile header cuts off long job titles without an ellipsis or hover tooltip.,Profile,Minor
+104,Changing account language in profile settings changes the interface language for all users sharing the organization tenant.,Profile,Critical
+105,Notification email preferences checkboxes revert to default settings upon saving the profile configuration page.,Profile,Major
+106,User background banner picture fails to render on Retina high-DPI displays.,Profile,Minor
+107,Account deletion request option in profile security tab triggers a 404 page error.,Profile,Major
+108,Upgrading from Tier 1 to Tier 2 subscription charges double the difference without applying pro-rated account credits.,Payments,Critical
+109,Updating the credit card on file returns a blank error popup without indicating which field failed validation.,Payments,Major
+110,Receipt line items show zero total tax amount despite billing address being located in a jurisdiction requiring VAT.,Payments,Major
+111,Annual billing toggle on the pricing modal does not update the monthly price breakdown calculation before checkout.,Payments,Minor
+112,Payment gateway webhook failure causes active subscriptions to be marked as past-due immediately upon successful renewal.,Payments,Critical
+113,Downloading transaction history in PDF format outputs unformatted raw HTML code inside the document.,Payments,Major
+114,"Refund processing button remains enabled for transactions older than the allowed 90-day window, resulting in failed Stripe calls.",Payments,Minor
+115,"Switching to dark mode leaves input background fields white, rendering placeholder text completely unreadable.",Other,Minor
+116,Browser back button navigation breaks after opening and closing the global search drawer twice.,Other,Major
+117,"Application leaks memory continuously while sitting idle, eventually freezing the browser tab after 2 hours.",Other,Critical
+118,System activity log table pagination defaults to showing 10 items but navigation buttons report wrong total page count.,Other,Minor
+119,Tooltip hints on desktop navigation icons remain visible on screen after moving the mouse cursor away.,Other,Minor
+120,App fails to load when user accesses the platform with ad-blocker extensions enabled due to blocked tracking scripts.,Other,Major

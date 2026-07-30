@@ -35,7 +35,7 @@ def train_module_model(train_csv_path: Path = TRAIN_DATA_PATH, model_save_path: 
 
     pipeline = Pipeline([
         ("tfidf", TfidfVectorizer(stop_words="english", ngram_range=(1, 2), sublinear_tf=True)),
-        ("clf", LogisticRegression(C=0.5, max_iter=1000, random_state=42, class_weight="balanced"))
+        ("clf", LogisticRegression(C=1.0, max_iter=1000, random_state=42, class_weight="balanced"))
     ])
 
     pipeline.fit(X, y)

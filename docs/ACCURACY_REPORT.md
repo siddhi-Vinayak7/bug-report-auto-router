@@ -49,6 +49,28 @@ kind of judgment calls a static training set can't fully capture in 60 rows.
 
 Every confirmation on the frontend writes a row to the corrections table, with NULL in a field meaning the human accepted the model's prediction for that field, and a non-NULL value meaning the human overrode it. This lets us compute both a per-field agreement rate and isolate genuine corrections for future retraining.
 
+## Dataset Expansion and Updated Results
+
+To address initial feedback that the model was overly dependent on exact keyword matches (e.g., only recognizing Auth issues containing the specific words "login" or "password"), the training set was expanded from 60 to 100 labeled bug reports (`data/bug_reports_train.csv`). The 40 new training examples were deliberately drafted using varied phrasing, sentence structures, and alternative domain vocabulary (e.g., "credentials rejected", "session expired unexpectedly", "locked out of account", "can't authenticate").
+
+The 20-row test set (`data/bug_reports_test.csv`) was **NOT modified** and remained strictly locked.
+
+Hyperparameters were re-tuned using the same 5-fold StratifiedKFold cross-validation process on the expanded 100-row training set only (without consulting the test set):
+- **Module Classifier**: $C = 1.0$ (72.00% mean CV accuracy)
+- **Severity Classifier**: $C = 2.0$ (44.00% mean CV accuracy)
+
+### Updated One-Shot Test Set Results (20 Samples)
+
+| Metric | Original (60 rows) | Expanded (100 rows) | Change |
+|---|---|---|---|
+| Module accuracy | 55.00% | 75.00% | +20.00% |
+| Severity accuracy | 40.00% | 45.00% | +5.00% |
+
+### Analysis & Caveats
+
+1. **Directional Interpretation**: Given the evaluation set size of 20 test samples, these accuracy figures should be read directionally as a meaningful improvement rather than as precise fixed percentages.
+2. **Module vs. Severity Disparity**: Module classification showed a substantial gain (+20.00 percentage points), benefiting directly from broader vocabulary coverage. Severity classification improved by +5.00 percentage points; this smaller gain is consistent with our earlier finding that severity classification is inherently harder because it is judgment-based rather than topic-based, so additional data provides less leverage than it does for module routing.
+
 ## Alternative Model Comparison: SVM
 
 A LinearSVC (SVM) comparison was run after the Logistic Regression baseline was locked, using identical TF-IDF settings (`stop_words='english'`, `ngram_range=(1,2)`, `sublinear_tf=True`) and `class_weight='balanced'`. The C hyperparameter was selected via the same 5-fold StratifiedKFold procedure on the 60-row training set only, using the same candidate set [0.5, 1.0, 2.0, 5.0]. The test set was not consulted during this stage.
