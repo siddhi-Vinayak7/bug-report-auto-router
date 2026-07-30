@@ -16,8 +16,8 @@ CLASSIFIER_DIR = PROJECT_DIR / "classifier"
 if str(CLASSIFIER_DIR) not in sys.path:
     sys.path.insert(0, str(CLASSIFIER_DIR))
 
-from module_classifier import predict_module
-from severity_classifier import predict_severity
+from module_classifier import predict_module, get_top_contributing_words as get_module_reason_words
+from severity_classifier import predict_severity, get_top_contributing_words as get_severity_reason_words
 from database import Correction, Report, create_tables, get_db
 
 
@@ -53,6 +53,8 @@ class TriageResponse(BaseModel):
     severity: str
     module_confidence: float
     severity_confidence: float
+    module_reason_words: list[str] = Field(default_factory=list)
+    severity_reason_words: list[str] = Field(default_factory=list)
 
 
 class CorrectionRequest(BaseModel):
@@ -91,6 +93,8 @@ def triage_report(payload: TriageRequest, db: Session = Depends(get_db)):
 
     module_pred, module_conf = predict_module(text)
     severity_pred, severity_conf = predict_severity(text)
+    module_reasons = get_module_reason_words(text, top_n=3)
+    severity_reasons = get_severity_reason_words(text, top_n=3)
 
     db_report = Report(
         report_text=text,
@@ -109,6 +113,8 @@ def triage_report(payload: TriageRequest, db: Session = Depends(get_db)):
         severity=db_report.predicted_severity,
         module_confidence=db_report.module_confidence,
         severity_confidence=db_report.severity_confidence,
+        module_reason_words=module_reasons,
+        severity_reason_words=severity_reasons,
     )
 
 

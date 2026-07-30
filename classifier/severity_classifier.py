@@ -15,6 +15,9 @@ MODEL_PATH = BASE_DIR / "severity_model.pkl"
 _cached_pipeline = None
 
 
+from explainability import extract_top_contributing_words
+
+
 def load_severity_model(model_path: Path = MODEL_PATH) -> Pipeline:
     global _cached_pipeline
     if _cached_pipeline is not None:
@@ -55,6 +58,15 @@ def predict_severity(text: str) -> tuple[str, float]:
     confidence_score = float(probabilities[max_idx])
     
     return predicted_label, confidence_score
+
+
+def get_top_contributing_words(text: str, top_n: int = 3) -> list[str]:
+    """
+    Returns top N words/n-grams contributing positively to the severity prediction.
+    """
+    pipeline = load_severity_model()
+    return extract_top_contributing_words(pipeline, text, top_n=top_n)
+
 
 
 if __name__ == "__main__":

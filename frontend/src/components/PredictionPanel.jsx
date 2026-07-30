@@ -11,7 +11,9 @@ export default function PredictionPanel({ triageResult, reportText, onReset }) {
     module: predictedModule,
     severity: predictedSeverity,
     module_confidence: moduleConfidence,
-    severity_confidence: severityConfidence
+    severity_confidence: severityConfidence,
+    module_reason_words: moduleReasonWords = [],
+    severity_reason_words: severityReasonWords = []
   } = triageResult;
 
   const [selectedModule, setSelectedModule] = useState(predictedModule);
@@ -184,6 +186,14 @@ export default function PredictionPanel({ triageResult, reportText, onReset }) {
                     style={{ width: `${Math.min(100, Math.max(5, moduleConfidence * 100))}%` }}
                   />
                 </div>
+                {moduleReasonWords && moduleReasonWords.length > 0 && (
+                  <div className="mt-2 text-xs text-[#5B6072]">
+                    <span className="font-mono font-medium">Key signal words: </span>
+                    <span className="font-mono font-semibold text-[#4F46E5]">
+                      {moduleReasonWords.join(', ')}
+                    </span>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -250,6 +260,14 @@ export default function PredictionPanel({ triageResult, reportText, onReset }) {
                     style={{ width: `${Math.min(100, Math.max(5, severityConfidence * 100))}%` }}
                   />
                 </div>
+                {severityReasonWords && severityReasonWords.length > 0 && (
+                  <div className="mt-2 text-xs text-[#5B6072]">
+                    <span className="font-mono font-medium">Key signal words: </span>
+                    <span className="font-mono font-semibold text-[#D97706]">
+                      {severityReasonWords.join(', ')}
+                    </span>
+                  </div>
+                )}
               </div>
             </div>
           </div>
