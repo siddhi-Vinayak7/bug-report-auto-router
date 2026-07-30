@@ -1,5 +1,6 @@
 from collections import Counter
 from contextlib import asynccontextmanager
+import os
 import sys
 from pathlib import Path
 from typing import Optional
@@ -83,13 +84,23 @@ class CorrectionResponse(BaseModel):
     correction_id: int
 
 
+class SuggestFixRequest(BaseModel):
+    report_text: str = Field(..., max_length=2000)
+    module: str
+    severity: str
+
+
+class SuggestFixResponse(BaseModel):
+    suggestion: str
+
+
 # Endpoints
 @app.get("/")
 def root():
     return {
         "status": "online",
         "message": "Bug Report Auto-Router API is running",
-        "endpoints": ["/api/health", "/api/triage", "/api/correct"],
+        "endpoints": ["/api/health", "/api/triage", "/api/correct", "/api/suggest-fix"],
     }
 
 
@@ -175,6 +186,47 @@ def log_correction(payload: CorrectionRequest, db: Session = Depends(get_db)):
         status="saved",
         correction_id=db_correction.id,
     )
+
+
+@app.post("/api/suggest-fix", response_model=SuggestFixResponse)
+def suggest_fix(payload: SuggestFixRequest):
+    api_key = os.environ.get("GROQ_API_KEY")
+    if not api_key:
+        raise HTTPException(
+            status_code=503,
+            detail="AI suggestion feature is not configured",
+        )
+
+    try:
+        from groq import Groq
+
+        client = Groq(api_key=api_key)
+        prompt = (
+            f"You are an expert software engineer reviewing a triaged bug report.\n"
+            f"Bug Report Text: {payload.report_text}\n"
+            f"Predicted Module: {payload.module}\n"
+            f"Severity: {payload.severity}\n\n"
+            f"Provide a brief (2-3 sentence) suggested next step or diagnostic approach for an engineer investigating this bug. "
+            f"Be concise, practical, and direct. Do not invent specific technical details that cannot be known (such as exact file names or line numbers). "
+            f"Acknowledge if more information or reproducing steps are needed."
+        )
+
+        completion = client.chat.completions.create(
+            model="llama-3.3-70b-versatile",
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.3,
+            max_tokens=200,
+        )
+
+        suggestion_text = completion.choices[0].message.content.strip()
+        return SuggestFixResponse(suggestion=suggestion_text)
+    except HTTPException:
+        raise
+    except Exception:
+        raise HTTPException(
+            status_code=503,
+            detail="AI suggestion temporarily unavailable, please try again",
+        )
 
 
 if __name__ == "__main__":

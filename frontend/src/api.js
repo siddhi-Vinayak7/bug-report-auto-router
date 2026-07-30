@@ -65,3 +65,31 @@ export async function checkHealth() {
   }
   return response.json();
 }
+
+/**
+ * Requests an LLM-generated diagnostic fix suggestion from the backend.
+ * @param {string} reportText 
+ * @param {string} module 
+ * @param {string} severity 
+ * @returns {Promise<{suggestion: string}>}
+ */
+export async function suggestFix(reportText, module, severity) {
+  const response = await fetch(`${API_URL}/api/suggest-fix`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      report_text: reportText,
+      module: module,
+      severity: severity,
+    }),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.detail || `AI suggestion request failed (${response.status})`);
+  }
+
+  return response.json();
+}

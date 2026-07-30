@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { CheckCircle2, AlertTriangle, Layers, Gauge, Check, RefreshCw, Edit3 } from 'lucide-react';
-import { submitCorrection } from '../api';
+import { CheckCircle2, AlertTriangle, Layers, Gauge, Check, RefreshCw, Edit3, Sparkles, Loader2, Bot } from 'lucide-react';
+import { submitCorrection, suggestFix } from '../api';
 
 const MODULE_OPTIONS = ['Auth', 'Chat', 'Tasks', 'Profile', 'Payments', 'Other'];
 const SEVERITY_OPTIONS = ['Critical', 'Major', 'Minor'];
@@ -24,9 +24,27 @@ export default function PredictionPanel({ triageResult, reportText, onReset }) {
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [saveError, setSaveError] = useState(null);
 
+  const [aiSuggestion, setAiSuggestion] = useState(null);
+  const [isFetchingSuggestion, setIsFetchingSuggestion] = useState(false);
+  const [suggestionError, setSuggestionError] = useState(null);
+
   const isModuleEdited = selectedModule !== predictedModule;
   const isSeverityEdited = selectedSeverity !== predictedSeverity;
   const isAnyEdited = isModuleEdited || isSeverityEdited;
+
+  const handleGetSuggestion = async () => {
+    setIsFetchingSuggestion(true);
+    setSuggestionError(null);
+
+    try {
+      const res = await suggestFix(reportText, selectedModule, selectedSeverity);
+      setAiSuggestion(res.suggestion);
+    } catch (err) {
+      setSuggestionError('AI suggestion unavailable right now');
+    } finally {
+      setIsFetchingSuggestion(false);
+    }
+  };
 
   const handleConfirm = async () => {
     setIsSubmitting(true);
@@ -314,6 +332,46 @@ export default function PredictionPanel({ triageResult, reportText, onReset }) {
               <Check className="w-4 h-4" />
               <span>{isSubmitting ? 'Saving Feedback...' : 'Confirm & Save Routing'}</span>
             </button>
+          </div>
+
+          {/* AI Fix Suggestion Section */}
+          <div className="pt-4 border-t border-[#E2E5EA] space-y-3">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="text-xs text-[#5B6072] font-medium">
+                Want AI assistance investigating this issue?
+              </div>
+
+              <button
+                onClick={handleGetSuggestion}
+                disabled={isFetchingSuggestion}
+                className="w-full sm:w-auto px-4 py-2 rounded-lg bg-[#F3E8FF] hover:bg-[#E9D5FF] border border-[#D8B4FE] text-[#6B21A8] font-medium text-xs flex items-center justify-center space-x-2 transition disabled:opacity-50 cursor-pointer"
+              >
+                {isFetchingSuggestion ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin text-[#6B21A8]" />
+                ) : (
+                  <Sparkles className="w-3.5 h-3.5 text-[#6B21A8]" />
+                )}
+                <span>{isFetchingSuggestion ? 'Fetching AI Suggestion...' : 'Get AI Suggestion'}</span>
+              </button>
+            </div>
+
+            {suggestionError && (
+              <div className="text-xs text-[#6B21A8] bg-[#F3E8FF] border border-[#E9D5FF] rounded-lg p-2.5 font-medium">
+                ℹ️ {suggestionError}
+              </div>
+            )}
+
+            {aiSuggestion && (
+              <div className="p-4 bg-[#F3E8FF] border border-[#D8B4FE] rounded-xl space-y-2 text-[#5B21B6]">
+                <div className="flex items-center space-x-2 text-xs font-semibold uppercase tracking-wider text-[#6B21A8]">
+                  <Bot className="w-4 h-4 text-[#6B21A8]" />
+                  <span>AI-Generated Suggestion (not authoritative — for reference only)</span>
+                </div>
+                <p className="text-xs sm:text-sm text-[#4C1D95] leading-relaxed font-sans">
+                  {aiSuggestion}
+                </p>
+              </div>
+            )}
           </div>
         </>
       )}
