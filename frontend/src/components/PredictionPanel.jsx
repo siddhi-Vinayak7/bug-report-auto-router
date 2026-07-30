@@ -14,7 +14,8 @@ export default function PredictionPanel({ triageResult, reportText, onReset }) {
     severity_confidence: severityConfidence,
     module_reason_words: moduleReasonWords = [],
     severity_reason_words: severityReasonWords = [],
-    routed_team: routedTeam = 'General Engineering'
+    routed_team: routedTeam = 'General Engineering',
+    low_confidence_flag: lowConfidenceFlag = false
   } = triageResult;
 
   const [selectedModule, setSelectedModule] = useState(predictedModule);
@@ -102,6 +103,14 @@ export default function PredictionPanel({ triageResult, reportText, onReset }) {
         <span className="text-[#5B6072] uppercase tracking-wider text-[10px] font-bold">Triage Input Text:</span>
         <p className="font-sans text-sm text-[#1A1D29] line-clamp-3 italic">"{reportText}"</p>
       </div>
+
+      {/* Low Confidence Warning Notice */}
+      {lowConfidenceFlag && (
+        <div className="p-3.5 bg-[#FEF3C7] border border-[#FCD34D] rounded-lg flex items-center space-x-2.5 text-[#D97706] text-xs font-mono font-medium">
+          <AlertTriangle className="w-4 h-4 text-[#D97706] flex-shrink-0" />
+          <span>⚠️ Low confidence prediction — consider manual review</span>
+        </div>
+      )}
 
       {saveSuccess ? (
         /* Success Card */

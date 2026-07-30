@@ -1,3 +1,4 @@
+from collections import Counter
 from contextlib import asynccontextmanager
 import sys
 from pathlib import Path
@@ -66,6 +67,7 @@ class TriageResponse(BaseModel):
     module_reason_words: list[str] = Field(default_factory=list)
     severity_reason_words: list[str] = Field(default_factory=list)
     routed_team: str = "General Engineering"
+    low_confidence_flag: bool = False
 
 
 class CorrectionRequest(BaseModel):
@@ -102,11 +104,31 @@ def triage_report(payload: TriageRequest, db: Session = Depends(get_db)):
     if not text:
         raise HTTPException(status_code=400, detail="report_text cannot be empty")
 
+    if len(text) < 10:
+        raise HTTPException(
+            status_code=400,
+            detail="Bug report is too short to classify meaningfully — please provide more detail.",
+        )
+
+    cleaned_chars = [c for c in text.lower() if not c.isspace()]
+    if cleaned_chars:
+        most_common_freq = Counter(cleaned_chars).most_common(1)[0][1] / len(cleaned_chars)
+        is_highly_repetitive = most_common_freq > 0.70
+    else:
+        is_highly_repetitive = False
+
+    if is_highly_repetitive:
+        raise HTTPException(
+            status_code=400,
+            detail="This doesn't look like a valid bug report — please describe the issue in plain language.",
+        )
+
     module_pred, module_conf = predict_module(text)
     severity_pred, severity_conf = predict_severity(text)
     module_reasons = get_module_reason_words(text, top_n=3)
     severity_reasons = get_severity_reason_words(text, top_n=3)
     routed_team = MODULE_TEAM_MAP.get(module_pred, "General Engineering")
+    low_confidence_flag = bool(module_conf < 0.15 and severity_conf < 0.15)
 
     db_report = Report(
         report_text=text,
@@ -128,6 +150,7 @@ def triage_report(payload: TriageRequest, db: Session = Depends(get_db)):
         module_reason_words=module_reasons,
         severity_reason_words=severity_reasons,
         routed_team=routed_team,
+        low_confidence_flag=low_confidence_flag,
     )
 
 
