@@ -47,7 +47,7 @@ is a far more valuable and realistic training signal than the initial 60-example
 since it reflects real bug reports and real disagreements about severity — the exact 
 kind of judgment calls a static training set can't fully capture in 60 rows.
 
-Every confirmation on the frontend writes a row to the corrections table, with NULL in a field meaning the human accepted the model's prediction for that field, and a non-NULL value meaning the human overrode it. This lets us compute both a per-field agreement rate and isolate genuine corrections for future retraining.
+Every confirmation on the frontend writes a row to the corrections table, with NULL in a field meaning the human accepted the displayed prediction (whether from the LLM or classifier fallback) for that field, and a non-NULL value meaning the human overrode it. This lets us compute both a per-field agreement rate and isolate genuine corrections for future retraining.
 
 ## Dataset Expansion and Updated Results
 
@@ -70,6 +70,7 @@ Hyperparameters were re-tuned using the same 5-fold StratifiedKFold cross-valida
 
 1. **Directional Interpretation**: Given the evaluation set size of 20 test samples, these accuracy figures should be read directionally as a meaningful improvement rather than as precise fixed percentages.
 2. **Module vs. Severity Disparity**: Module classification showed a substantial gain (+20.00 percentage points), benefiting directly from broader vocabulary coverage. Severity classification improved by +5.00 percentage points; this smaller gain is consistent with our earlier finding that severity classification is inherently harder because it is judgment-based rather than topic-based, so additional data provides less leverage than it does for module routing.
+3. **Standalone Classifier Scope & Live System Architecture**: Note that these accuracy metrics (75.00% module, 45.00% severity) describe the standalone scikit-learn Logistic Regression classifier evaluated in isolation via `evaluate.py` against the locked test set. In the live production system, the Groq LLM (`llama-3.3-70b-versatile`) acts as the primary decision-maker, using the classifier's output as reference context and serving as a fallback if the LLM call fails. Consequently, these metrics describe the classifier's standalone performance rather than overall live system decision accuracy, which has not been separately benchmarked.
 
 ## Alternative Model Comparison: SVM
 
