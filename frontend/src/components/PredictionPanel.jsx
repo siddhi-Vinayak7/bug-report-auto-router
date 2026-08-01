@@ -15,7 +15,8 @@ export default function PredictionPanel({ triageResult, reportText, onReset }) {
     module_reason_words: moduleReasonWords = [],
     severity_reason_words: severityReasonWords = [],
     routed_team: routedTeam = 'General Engineering',
-    low_confidence_flag: lowConfidenceFlag = false
+    low_confidence_flag: lowConfidenceFlag = false,
+    decision_source: decisionSource = 'llm'
   } = triageResult;
 
   const [selectedModule, setSelectedModule] = useState(predictedModule);
@@ -102,6 +103,16 @@ export default function PredictionPanel({ triageResult, reportText, onReset }) {
             <span className="text-xs font-mono px-2 py-0.5 rounded bg-[#EEF2FF] text-[#4F46E5] border border-[#C7D2FE] font-medium">
               Report #{report_id}
             </span>
+            {decisionSource === 'llm' ? (
+              <span className="text-xs font-mono px-2 py-0.5 rounded bg-[#F3E8FF] text-[#7C3AED] border border-[#DDD6FE] font-medium flex items-center space-x-1">
+                <Sparkles className="w-3 h-3 text-[#7C3AED]" />
+                <span>AI-reviewed</span>
+              </span>
+            ) : (
+              <span className="text-xs font-mono px-2 py-0.5 rounded bg-[#F1F5F9] text-[#475569] border border-[#CBD5E1] font-medium">
+                Model prediction
+              </span>
+            )}
             <span className="text-xs text-[#5B6072] font-mono">Triage Analysis Complete</span>
           </div>
           <h2 className="font-semibold text-[#1A1D29] text-lg mt-1">Predicted Routing & Severity</h2>

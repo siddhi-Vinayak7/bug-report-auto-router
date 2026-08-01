@@ -53,6 +53,9 @@ MODULE_TEAM_MAP = {
     "Other": "General Engineering",
 }
 
+VALID_MODULES = {"Auth", "Chat", "Tasks", "Profile", "Payments", "Other"}
+VALID_SEVERITIES = {"Critical", "Major", "Minor"}
+
 
 # Pydantic Schemas
 class TriageRequest(BaseModel):
@@ -69,6 +72,7 @@ class TriageResponse(BaseModel):
     severity_reason_words: list[str] = Field(default_factory=list)
     routed_team: str = "General Engineering"
     low_confidence_flag: bool = False
+    decision_source: str = "llm"
 
 
 class CorrectionRequest(BaseModel):
@@ -134,17 +138,74 @@ def triage_report(payload: TriageRequest, db: Session = Depends(get_db)):
             detail="This doesn't look like a valid bug report — please describe the issue in plain language.",
         )
 
+    # 1. Run classifier baseline (reference signal)
     module_pred, module_conf = predict_module(text)
     severity_pred, severity_conf = predict_severity(text)
     module_reasons = get_module_reason_words(text, top_n=3)
     severity_reasons = get_severity_reason_words(text, top_n=3)
-    routed_team = MODULE_TEAM_MAP.get(module_pred, "General Engineering")
     low_confidence_flag = bool(module_conf < 0.15 and severity_conf < 0.15)
+
+    # 2. LLM Decision with Classifier Fallback
+    final_module = module_pred
+    final_severity = severity_pred
+    decision_source = "classifier_fallback"
+
+    api_key = os.environ.get("GROQ_API_KEY")
+    if api_key:
+        try:
+            from groq import Groq
+
+            client = Groq(api_key=api_key)
+            prompt = (
+                f"You are an AI triage assistant for an engineering bug tracking system.\n"
+                f"Review the bug report below and make the final decision on the MODULE and SEVERITY.\n\n"
+                f"Bug Report Text: {text}\n\n"
+                f"Reference Signal (from ML Classifier):\n"
+                f"- Suggested Module: {module_pred} (confidence: {module_conf:.2%})\n"
+                f"- Suggested Severity: {severity_pred} (confidence: {severity_conf:.2%})\n\n"
+                f"Allowed Modules (choose exactly one): Auth, Chat, Tasks, Profile, Payments, Other\n"
+                f"Allowed Severities (choose exactly one): Critical, Major, Minor\n\n"
+                f"If you disagree with the classifier's suggestion, use your own judgment based on the bug report text.\n\n"
+                f"Respond ONLY in the following strict two-line format and nothing else:\n"
+                f"MODULE: <one of the 6 exact values>\n"
+                f"SEVERITY: <one of the 3 exact values>"
+            )
+
+            completion = client.chat.completions.create(
+                model="llama-3.3-70b-versatile",
+                messages=[{"role": "user", "content": prompt}],
+                temperature=0.1,
+                max_tokens=60,
+            )
+
+            raw_response = completion.choices[0].message.content.strip()
+            parsed_module = None
+            parsed_severity = None
+
+            for line in raw_response.splitlines():
+                line_str = line.strip()
+                if line_str.startswith("MODULE:"):
+                    parsed_module = line_str.split("MODULE:", 1)[1].strip()
+                elif line_str.startswith("SEVERITY:"):
+                    parsed_severity = line_str.split("SEVERITY:", 1)[1].strip()
+
+            if parsed_module in VALID_MODULES and parsed_severity in VALID_SEVERITIES:
+                final_module = parsed_module
+                final_severity = parsed_severity
+                decision_source = "llm"
+            else:
+                print(f"[Triage Fallback] Invalid or unparseable LLM output: module={parsed_module}, severity={parsed_severity}. Raw: {raw_response}")
+        except Exception as e:
+            print(f"[Triage Fallback] Groq LLM API call failed or timed out: {e}")
+    else:
+        print("[Triage Fallback] GROQ_API_KEY not found. Using classifier predictions.")
+
+    routed_team = MODULE_TEAM_MAP.get(final_module, "General Engineering")
 
     db_report = Report(
         report_text=text,
-        predicted_module=module_pred,
-        predicted_severity=severity_pred,
+        predicted_module=final_module,
+        predicted_severity=final_severity,
         module_confidence=module_conf,
         severity_confidence=severity_conf,
     )
@@ -162,6 +223,7 @@ def triage_report(payload: TriageRequest, db: Session = Depends(get_db)):
         severity_reason_words=severity_reasons,
         routed_team=routed_team,
         low_confidence_flag=low_confidence_flag,
+        decision_source=decision_source,
     )
 
 
