@@ -233,12 +233,21 @@ def log_correction(payload: CorrectionRequest, db: Session = Depends(get_db)):
     if not report:
         raise HTTPException(status_code=404, detail="report_id not found")
 
+    # Normalize redundant non-null values to None (SQL NULL) if they equal original values
+    corrected_module = payload.corrected_module
+    if corrected_module == payload.original_module:
+        corrected_module = None
+
+    corrected_severity = payload.corrected_severity
+    if corrected_severity == payload.original_severity:
+        corrected_severity = None
+
     db_correction = Correction(
         report_id=payload.report_id,
         original_module=payload.original_module,
-        corrected_module=payload.corrected_module,
+        corrected_module=corrected_module,
         original_severity=payload.original_severity,
-        corrected_severity=payload.corrected_severity,
+        corrected_severity=corrected_severity,
     )
     db.add(db_correction)
     db.commit()

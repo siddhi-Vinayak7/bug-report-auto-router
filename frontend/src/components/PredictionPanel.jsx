@@ -151,7 +151,9 @@ export default function PredictionPanel({ triageResult, reportText, onReset }) {
           <p className="text-sm text-[#047857] max-w-md mx-auto">
             {isAnyEdited
               ? 'Human correction logged to database. This feedback will refine future retrainings.'
-              : 'Model prediction verified and logged to database.'}
+              : (decisionSource === 'llm'
+                  ? 'AI decision verified and logged to database.'
+                  : 'Classifier prediction verified and logged to database.')}
           </p>
           <div className="pt-2">
             <button
