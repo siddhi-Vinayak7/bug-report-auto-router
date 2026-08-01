@@ -205,7 +205,7 @@ export default function PredictionPanel({ triageResult, reportText, onReset }) {
                 >
                   {MODULE_OPTIONS.map((mod) => (
                     <option key={mod} value={mod}>
-                      {mod} {mod === predictedModule ? '(Model Prediction)' : ''}
+                      {mod} {mod === predictedModule ? (decisionSource === 'llm' ? '(AI Decision)' : '(Model Prediction)') : ''}
                     </option>
                   ))}
                 </select>
@@ -214,7 +214,7 @@ export default function PredictionPanel({ triageResult, reportText, onReset }) {
               {/* Confidence Bar */}
               <div className="pt-2 border-t border-[#E2E5EA]">
                 <div className="flex justify-between items-center text-xs mb-1.5">
-                  <span className="text-[#5B6072] font-mono font-medium">Model Confidence</span>
+                  <span className="text-[#5B6072] font-mono font-medium">Classifier Confidence</span>
                   <span className="font-mono font-bold text-[#4F46E5]">
                     {(moduleConfidence * 100).toFixed(1)}%
                   </span>
@@ -287,7 +287,7 @@ export default function PredictionPanel({ triageResult, reportText, onReset }) {
                 >
                   {SEVERITY_OPTIONS.map((sev) => (
                     <option key={sev} value={sev} className="bg-white text-[#1A1D29]">
-                      {sev} {sev === predictedSeverity ? '(Model Prediction)' : ''}
+                      {sev} {sev === predictedSeverity ? (decisionSource === 'llm' ? '(AI Decision)' : '(Model Prediction)') : ''}
                     </option>
                   ))}
                 </select>
@@ -296,7 +296,7 @@ export default function PredictionPanel({ triageResult, reportText, onReset }) {
               {/* Confidence Bar */}
               <div className="pt-2 border-t border-[#E2E5EA]">
                 <div className="flex justify-between items-center text-xs mb-1.5">
-                  <span className="text-[#5B6072] font-mono font-medium">Model Confidence</span>
+                  <span className="text-[#5B6072] font-mono font-medium">Classifier Confidence</span>
                   <span className="font-mono font-bold text-[#D97706]">
                     {(severityConfidence * 100).toFixed(1)}%
                   </span>
