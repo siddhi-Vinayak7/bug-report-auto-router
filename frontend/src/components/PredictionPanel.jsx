@@ -330,7 +330,11 @@ export default function PredictionPanel({ triageResult, reportText, onReset }) {
               ) : (
                 <>
                   <span className="w-2 h-2 rounded-full bg-emerald-500" />
-                  <span>Accepting ML predictions directly.</span>
+                  <span>
+                    {decisionSource === 'llm'
+                      ? 'Accepting AI decision directly.'
+                      : 'Accepting classifier prediction directly.'}
+                  </span>
                 </>
               )}
             </div>
