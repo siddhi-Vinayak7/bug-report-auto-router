@@ -64,22 +64,22 @@ class TriageRequest(BaseModel):
 
 class TriageResponse(BaseModel):
     report_id: int
-    module: str
-    severity: str
+    module: Optional[str] = None
+    severity: Optional[str] = None
     module_confidence: float
     severity_confidence: float
     module_reason_words: list[str] = Field(default_factory=list)
     severity_reason_words: list[str] = Field(default_factory=list)
-    routed_team: str = "General Engineering"
+    routed_team: Optional[str] = "General Engineering"
     low_confidence_flag: bool = False
     decision_source: str = "llm"
 
 
 class CorrectionRequest(BaseModel):
     report_id: int
-    original_module: str
+    original_module: Optional[str] = None
     corrected_module: Optional[str] = None
-    original_severity: str
+    original_severity: Optional[str] = None
     corrected_severity: Optional[str] = None
 
 
@@ -143,7 +143,7 @@ def triage_report(payload: TriageRequest, db: Session = Depends(get_db)):
     severity_pred, severity_conf = predict_severity(text)
     module_reasons = get_module_reason_words(text, top_n=3)
     severity_reasons = get_severity_reason_words(text, top_n=3)
-    low_confidence_flag = bool(module_conf < 0.15 and severity_conf < 0.15)
+    low_confidence_flag = bool(module_conf < 0.15 or severity_conf < 0.15)
 
     # 2. LLM Decision with Classifier Fallback
     final_module = module_pred
@@ -165,10 +165,14 @@ def triage_report(payload: TriageRequest, db: Session = Depends(get_db)):
                 f"- Suggested Severity: {severity_pred} (confidence: {severity_conf:.2%})\n\n"
                 f"Allowed Modules (choose exactly one): Auth, Chat, Tasks, Profile, Payments, Other\n"
                 f"Allowed Severities (choose exactly one): Critical, Major, Minor\n\n"
+                f"If the bug report does not contain enough information to determine a module or severity "
+                f"(e.g. it's vague, a non-answer, or lacks any description of an actual issue), respond with exactly:\n"
+                f"MODULE: INSUFFICIENT_INFO\n"
+                f"SEVERITY: INSUFFICIENT_INFO\n\n"
                 f"If you disagree with the classifier's suggestion, use your own judgment based on the bug report text.\n\n"
                 f"Respond ONLY in the following strict two-line format and nothing else:\n"
-                f"MODULE: <one of the 6 exact values>\n"
-                f"SEVERITY: <one of the 3 exact values>"
+                f"MODULE: <one of the 6 exact values or INSUFFICIENT_INFO>\n"
+                f"SEVERITY: <one of the 3 exact values or INSUFFICIENT_INFO>"
             )
 
             completion = client.chat.completions.create(
@@ -189,7 +193,11 @@ def triage_report(payload: TriageRequest, db: Session = Depends(get_db)):
                 elif line_str.startswith("SEVERITY:"):
                     parsed_severity = line_str.split("SEVERITY:", 1)[1].strip()
 
-            if parsed_module in VALID_MODULES and parsed_severity in VALID_SEVERITIES:
+            if parsed_module == "INSUFFICIENT_INFO" and parsed_severity == "INSUFFICIENT_INFO":
+                final_module = None
+                final_severity = None
+                decision_source = "llm_insufficient_info"
+            elif parsed_module in VALID_MODULES and parsed_severity in VALID_SEVERITIES:
                 final_module = parsed_module
                 final_severity = parsed_severity
                 decision_source = "llm"
@@ -200,7 +208,10 @@ def triage_report(payload: TriageRequest, db: Session = Depends(get_db)):
     else:
         print("[Triage Fallback] GROQ_API_KEY not found. Using classifier predictions.")
 
-    routed_team = MODULE_TEAM_MAP.get(final_module, "General Engineering")
+    if final_module is None:
+        routed_team = "Unassigned"
+    else:
+        routed_team = MODULE_TEAM_MAP.get(final_module, "General Engineering")
 
     db_report = Report(
         report_text=text,

@@ -27,8 +27,8 @@ class Report(Base):
 
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
     report_text = Column(Text, nullable=False)
-    predicted_module = Column(String(255), nullable=False)
-    predicted_severity = Column(String(255), nullable=False)
+    predicted_module = Column(String(255), nullable=True)
+    predicted_severity = Column(String(255), nullable=True)
     module_confidence = Column(Float, nullable=False)
     severity_confidence = Column(Float, nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
