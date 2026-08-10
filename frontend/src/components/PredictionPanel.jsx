@@ -1,9 +1,18 @@
 import React, { useState } from 'react';
-import { CheckCircle2, AlertTriangle, Layers, Gauge, Check, RefreshCw, Edit3, Sparkles, Loader2, Bot } from 'lucide-react';
+import { CheckCircle2, AlertTriangle, Layers, Gauge, Check, RefreshCw, Edit3, Sparkles, Loader2, Bot, HelpCircle } from 'lucide-react';
 import { submitCorrection, suggestFix } from '../api';
 
 const MODULE_OPTIONS = ['Auth', 'Chat', 'Tasks', 'Profile', 'Payments', 'Other'];
 const SEVERITY_OPTIONS = ['Critical', 'Major', 'Minor'];
+
+const MODULE_TEAM_MAP = {
+  Auth: 'Identity & Access Team',
+  Chat: 'Messaging Team',
+  Tasks: 'Workflow Team',
+  Profile: 'Account Team',
+  Payments: 'Billing Team',
+  Other: 'General Engineering',
+};
 
 export default function PredictionPanel({ triageResult, reportText, onReset }) {
   const {
@@ -14,13 +23,15 @@ export default function PredictionPanel({ triageResult, reportText, onReset }) {
     severity_confidence: severityConfidence,
     module_reason_words: moduleReasonWords = [],
     severity_reason_words: severityReasonWords = [],
-    routed_team: routedTeam = 'General Engineering',
+    routed_team: initialRoutedTeam = 'General Engineering',
     low_confidence_flag: lowConfidenceFlag = false,
     decision_source: decisionSource = 'llm'
   } = triageResult;
 
-  const [selectedModule, setSelectedModule] = useState(predictedModule);
-  const [selectedSeverity, setSelectedSeverity] = useState(predictedSeverity);
+  const isInsufficientInfo = decisionSource === 'llm_insufficient_info';
+
+  const [selectedModule, setSelectedModule] = useState(predictedModule || '');
+  const [selectedSeverity, setSelectedSeverity] = useState(predictedSeverity || '');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [saveError, setSaveError] = useState(null);
@@ -29,11 +40,17 @@ export default function PredictionPanel({ triageResult, reportText, onReset }) {
   const [isFetchingSuggestion, setIsFetchingSuggestion] = useState(false);
   const [suggestionError, setSuggestionError] = useState(null);
 
-  const isModuleEdited = selectedModule !== predictedModule;
-  const isSeverityEdited = selectedSeverity !== predictedSeverity;
-  const isAnyEdited = isModuleEdited || isSeverityEdited;
+  const isModuleEdited = !isInsufficientInfo && selectedModule !== predictedModule;
+  const isSeverityEdited = !isInsufficientInfo && selectedSeverity !== predictedSeverity;
+  const isAnyEdited = isInsufficientInfo || isModuleEdited || isSeverityEdited;
+
+  const activeRoutedTeam = isInsufficientInfo
+    ? (selectedModule ? (MODULE_TEAM_MAP[selectedModule] || 'General Engineering') : 'Unassigned')
+    : initialRoutedTeam;
 
   const handleGetSuggestion = async () => {
+    if (!selectedModule || !selectedSeverity) return;
+
     setIsFetchingSuggestion(true);
     setSuggestionError(null);
 
@@ -52,13 +69,24 @@ export default function PredictionPanel({ triageResult, reportText, onReset }) {
     setSaveError(null);
 
     try {
-      await submitCorrection(
-        report_id,
-        predictedModule,
-        isModuleEdited ? selectedModule : null,
-        predictedSeverity,
-        isSeverityEdited ? selectedSeverity : null
-      );
+      if (isInsufficientInfo) {
+        // Send 'INSUFFICIENT_INFO' as original_module/original_severity since DB columns are NOT NULL constrained on corrections table
+        await submitCorrection(
+          report_id,
+          'INSUFFICIENT_INFO',
+          selectedModule,
+          'INSUFFICIENT_INFO',
+          selectedSeverity
+        );
+      } else {
+        await submitCorrection(
+          report_id,
+          predictedModule,
+          isModuleEdited ? selectedModule : null,
+          predictedSeverity,
+          isSeverityEdited ? selectedSeverity : null
+        );
+      }
 
       setSaveSuccess(true);
     } catch (err) {
@@ -94,6 +122,8 @@ export default function PredictionPanel({ triageResult, reportText, onReset }) {
     }
   };
 
+  const isSubmitDisabled = isSubmitting || (isInsufficientInfo && (!selectedModule || !selectedSeverity));
+
   return (
     <div className="bg-white border border-[#E2E5EA] rounded-xl p-5 sm:p-6 shadow-sm space-y-6">
       {/* Header */}
@@ -103,7 +133,12 @@ export default function PredictionPanel({ triageResult, reportText, onReset }) {
             <span className="text-xs font-mono px-2 py-0.5 rounded bg-[#EEF2FF] text-[#4F46E5] border border-[#C7D2FE] font-medium">
               Report #{report_id}
             </span>
-            {decisionSource === 'llm' ? (
+            {isInsufficientInfo ? (
+              <span className="text-xs font-mono px-2 py-0.5 rounded bg-[#FEF3C7] text-[#D97706] border border-[#FCD34D] font-medium flex items-center space-x-1">
+                <HelpCircle className="w-3 h-3 text-[#D97706]" />
+                <span>Needs Manual Triage</span>
+              </span>
+            ) : decisionSource === 'llm' ? (
               <span className="text-xs font-mono px-2 py-0.5 rounded bg-[#F3E8FF] text-[#7C3AED] border border-[#DDD6FE] font-medium flex items-center space-x-1">
                 <Sparkles className="w-3 h-3 text-[#7C3AED]" />
                 <span>AI-reviewed</span>
@@ -113,9 +148,13 @@ export default function PredictionPanel({ triageResult, reportText, onReset }) {
                 Model prediction
               </span>
             )}
-            <span className="text-xs text-[#5B6072] font-mono">Triage Analysis Complete</span>
+            <span className="text-xs text-[#5B6072] font-mono">
+              {isInsufficientInfo ? 'Triage Review Required' : 'Triage Analysis Complete'}
+            </span>
           </div>
-          <h2 className="font-semibold text-[#1A1D29] text-lg mt-1">Predicted Routing & Severity</h2>
+          <h2 className="font-semibold text-[#1A1D29] text-lg mt-1">
+            {isInsufficientInfo ? 'Manual Triage Required' : 'Predicted Routing & Severity'}
+          </h2>
         </div>
 
         <button
@@ -133,12 +172,24 @@ export default function PredictionPanel({ triageResult, reportText, onReset }) {
         <p className="font-sans text-sm text-[#1A1D29] line-clamp-3 italic">"{reportText}"</p>
       </div>
 
-      {/* Low Confidence Warning Notice */}
-      {lowConfidenceFlag && (
-        <div className="p-3.5 bg-[#FEF3C7] border border-[#FCD34D] rounded-lg flex items-center space-x-2.5 text-[#D97706] text-xs font-mono font-medium">
-          <AlertTriangle className="w-4 h-4 text-[#D97706] flex-shrink-0" />
-          <span>⚠️ Low confidence prediction — consider manual review</span>
+      {/* Insufficient Information Banner OR Low Confidence Warning Notice */}
+      {isInsufficientInfo ? (
+        <div className="p-4 bg-[#FEF3C7] border border-[#FCD34D] rounded-xl flex items-start space-x-3 text-[#B45309] text-sm">
+          <AlertTriangle className="w-5 h-5 text-[#D97706] flex-shrink-0 mt-0.5" />
+          <div>
+            <span className="font-semibold block text-[#92400E]">Insufficient Information for Auto-Triage</span>
+            <p className="text-xs text-[#B45309] mt-0.5 leading-relaxed">
+              This report doesn't contain enough information to auto-triage. Please select the module and severity manually below.
+            </p>
+          </div>
         </div>
+      ) : (
+        lowConfidenceFlag && (
+          <div className="p-3.5 bg-[#FEF3C7] border border-[#FCD34D] rounded-lg flex items-center space-x-2.5 text-[#D97706] text-xs font-mono font-medium">
+            <AlertTriangle className="w-4 h-4 text-[#D97706] flex-shrink-0" />
+            <span>⚠️ Low confidence prediction — consider manual review</span>
+          </div>
+        )
       )}
 
       {saveSuccess ? (
@@ -149,7 +200,9 @@ export default function PredictionPanel({ triageResult, reportText, onReset }) {
           </div>
           <h3 className="text-lg font-bold text-[#065F46]">Routing Confirmed & Saved</h3>
           <p className="text-sm text-[#047857] max-w-md mx-auto">
-            {isAnyEdited
+            {isInsufficientInfo
+              ? 'Manual triage selection logged to database.'
+              : isAnyEdited
               ? 'Human correction logged to database. This feedback will refine future retrainings.'
               : (decisionSource === 'llm'
                   ? 'AI decision verified and logged to database.'
@@ -178,8 +231,10 @@ export default function PredictionPanel({ triageResult, reportText, onReset }) {
             {/* MODULE CARD */}
             <div
               className={`p-4 rounded-xl border transition ${
-                isModuleEdited
+                isModuleEdited || (isInsufficientInfo && selectedModule)
                   ? 'bg-white border-[#4F46E5] ring-1 ring-[#4F46E5]/40 shadow-xs'
+                  : isInsufficientInfo
+                  ? 'bg-white border-[#E2E5EA]'
                   : 'bg-[#F7F8FA] border-[#E2E5EA]'
               }`}
             >
@@ -205,41 +260,53 @@ export default function PredictionPanel({ triageResult, reportText, onReset }) {
                   onChange={(e) => setSelectedModule(e.target.value)}
                   className="w-full bg-white border border-[#E2E5EA] rounded-lg px-3 py-2 text-[#1A1D29] font-medium text-sm focus:outline-none focus:border-[#4F46E5]"
                 >
+                  {isInsufficientInfo && (
+                    <option value="" disabled>-- Select Module --</option>
+                  )}
                   {MODULE_OPTIONS.map((mod) => (
                     <option key={mod} value={mod}>
-                      {mod} {mod === predictedModule ? (decisionSource === 'llm' ? '(AI Decision)' : '(Model Prediction)') : ''}
+                      {mod} {!isInsufficientInfo && mod === predictedModule ? (decisionSource === 'llm' ? '(AI Decision)' : '(Model Prediction)') : ''}
                     </option>
                   ))}
                 </select>
               </div>
 
-              {/* Confidence Bar */}
+              {/* Module Bottom Info / Confidence Bar */}
               <div className="pt-2 border-t border-[#E2E5EA]">
-                <div className="flex justify-between items-center text-xs mb-1.5">
-                  <span className="text-[#5B6072] font-mono font-medium">Classifier Confidence</span>
-                  <span className="font-mono font-bold text-[#4F46E5]">
-                    {(moduleConfidence * 100).toFixed(1)}%
-                  </span>
-                </div>
-                <div className="w-full bg-[#E5E7EB] rounded-full h-2 overflow-hidden border border-[#D1D5DB]">
-                  <div
-                    className="bg-[#4F46E5] h-full rounded-full transition-all duration-300"
-                    style={{ width: `${Math.min(100, Math.max(5, moduleConfidence * 100))}%` }}
-                  />
-                </div>
-                {moduleReasonWords && moduleReasonWords.length > 0 && (
-                  <div className="mt-2 text-xs text-[#5B6072]">
-                    <span className="font-mono font-medium">Key signal words: </span>
-                    <span className="font-mono font-semibold text-[#4F46E5]">
-                      {moduleReasonWords.join(', ')}
-                    </span>
-                  </div>
-                )}
-                {routedTeam && (
-                  <div className="mt-1.5 text-xs text-[#5B6072]">
+                {!isInsufficientInfo ? (
+                  <>
+                    <div className="flex justify-between items-center text-xs mb-1.5">
+                      <span className="text-[#5B6072] font-mono font-medium">Classifier Confidence</span>
+                      <span className="font-mono font-bold text-[#4F46E5]">
+                        {(moduleConfidence * 100).toFixed(1)}%
+                      </span>
+                    </div>
+                    <div className="w-full bg-[#E5E7EB] rounded-full h-2 overflow-hidden border border-[#D1D5DB]">
+                      <div
+                        className="bg-[#4F46E5] h-full rounded-full transition-all duration-300"
+                        style={{ width: `${Math.min(100, Math.max(5, moduleConfidence * 100))}%` }}
+                      />
+                    </div>
+                    {moduleReasonWords && moduleReasonWords.length > 0 && (
+                      <div className="mt-2 text-xs text-[#5B6072]">
+                        <span className="font-mono font-medium">Key signal words: </span>
+                        <span className="font-mono font-semibold text-[#4F46E5]">
+                          {moduleReasonWords.join(', ')}
+                        </span>
+                      </div>
+                    )}
+                    <div className="mt-1.5 text-xs text-[#5B6072]">
+                      <span className="font-mono font-medium">Routes to: </span>
+                      <span className="font-mono font-semibold text-[#1A1D29]">
+                        {activeRoutedTeam}
+                      </span>
+                    </div>
+                  </>
+                ) : (
+                  <div className="text-xs text-[#5B6072]">
                     <span className="font-mono font-medium">Routes to: </span>
                     <span className="font-mono font-semibold text-[#1A1D29]">
-                      {routedTeam}
+                      {activeRoutedTeam}
                     </span>
                   </div>
                 )}
@@ -249,8 +316,10 @@ export default function PredictionPanel({ triageResult, reportText, onReset }) {
             {/* SEVERITY CARD */}
             <div
               className={`p-4 rounded-xl border transition ${
-                isSeverityEdited
+                isSeverityEdited || (isInsufficientInfo && selectedSeverity)
                   ? 'bg-white border-[#D97706] ring-1 ring-[#D97706]/40 shadow-xs'
+                  : isInsufficientInfo
+                  ? 'bg-white border-[#E2E5EA]'
                   : 'bg-[#F7F8FA] border-[#E2E5EA]'
               }`}
             >
@@ -272,13 +341,19 @@ export default function PredictionPanel({ triageResult, reportText, onReset }) {
               <div className="mb-3">
                 <div className="flex justify-between items-center mb-1">
                   <label className="text-xs text-[#5B6072] font-medium block">Severity Level:</label>
-                  <span
-                    className={`text-[10px] font-mono px-2 py-0.5 rounded border font-bold ${getSeverityBadgeStyle(
-                      selectedSeverity
-                    )}`}
-                  >
-                    {selectedSeverity}
-                  </span>
+                  {selectedSeverity ? (
+                    <span
+                      className={`text-[10px] font-mono px-2 py-0.5 rounded border font-bold ${getSeverityBadgeStyle(
+                        selectedSeverity
+                      )}`}
+                    >
+                      {selectedSeverity}
+                    </span>
+                  ) : (
+                    <span className="text-[10px] font-mono px-2 py-0.5 rounded border font-bold bg-[#F1F3F6] text-[#5B6072] border-[#E2E5EA]">
+                      Unselected
+                    </span>
+                  )}
                 </div>
                 <select
                   value={selectedSeverity}
@@ -287,33 +362,47 @@ export default function PredictionPanel({ triageResult, reportText, onReset }) {
                     selectedSeverity
                   )}`}
                 >
+                  {isInsufficientInfo && (
+                    <option value="" disabled className="bg-white text-[#5B6072]">-- Select Severity --</option>
+                  )}
                   {SEVERITY_OPTIONS.map((sev) => (
                     <option key={sev} value={sev} className="bg-white text-[#1A1D29]">
-                      {sev} {sev === predictedSeverity ? (decisionSource === 'llm' ? '(AI Decision)' : '(Model Prediction)') : ''}
+                      {sev} {!isInsufficientInfo && sev === predictedSeverity ? (decisionSource === 'llm' ? '(AI Decision)' : '(Model Prediction)') : ''}
                     </option>
                   ))}
                 </select>
               </div>
 
-              {/* Confidence Bar */}
+              {/* Severity Bottom Info / Confidence Bar */}
               <div className="pt-2 border-t border-[#E2E5EA]">
-                <div className="flex justify-between items-center text-xs mb-1.5">
-                  <span className="text-[#5B6072] font-mono font-medium">Classifier Confidence</span>
-                  <span className="font-mono font-bold text-[#D97706]">
-                    {(severityConfidence * 100).toFixed(1)}%
-                  </span>
-                </div>
-                <div className="w-full bg-[#E5E7EB] rounded-full h-2 overflow-hidden border border-[#D1D5DB]">
-                  <div
-                    className="bg-[#D97706] h-full rounded-full transition-all duration-300"
-                    style={{ width: `${Math.min(100, Math.max(5, severityConfidence * 100))}%` }}
-                  />
-                </div>
-                {severityReasonWords && severityReasonWords.length > 0 && (
-                  <div className="mt-2 text-xs text-[#5B6072]">
-                    <span className="font-mono font-medium">Key signal words: </span>
-                    <span className="font-mono font-semibold text-[#D97706]">
-                      {severityReasonWords.join(', ')}
+                {!isInsufficientInfo ? (
+                  <>
+                    <div className="flex justify-between items-center text-xs mb-1.5">
+                      <span className="text-[#5B6072] font-mono font-medium">Classifier Confidence</span>
+                      <span className="font-mono font-bold text-[#D97706]">
+                        {(severityConfidence * 100).toFixed(1)}%
+                      </span>
+                    </div>
+                    <div className="w-full bg-[#E5E7EB] rounded-full h-2 overflow-hidden border border-[#D1D5DB]">
+                      <div
+                        className="bg-[#D97706] h-full rounded-full transition-all duration-300"
+                        style={{ width: `${Math.min(100, Math.max(5, severityConfidence * 100))}%` }}
+                      />
+                    </div>
+                    {severityReasonWords && severityReasonWords.length > 0 && (
+                      <div className="mt-2 text-xs text-[#5B6072]">
+                        <span className="font-mono font-medium">Key signal words: </span>
+                        <span className="font-mono font-semibold text-[#D97706]">
+                          {severityReasonWords.join(', ')}
+                        </span>
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <div className="text-xs text-[#5B6072]">
+                    <span className="font-mono font-medium">Status: </span>
+                    <span className="font-mono font-semibold text-[#1A1D29]">
+                      {selectedSeverity ? `Selected (${selectedSeverity})` : 'Awaiting Selection'}
                     </span>
                   </div>
                 )}
@@ -324,7 +413,16 @@ export default function PredictionPanel({ triageResult, reportText, onReset }) {
           {/* Bottom Confirmation Bar */}
           <div className="pt-4 border-t border-[#E2E5EA] flex flex-wrap items-center justify-between gap-3">
             <div className="text-xs text-[#5B6072] font-medium flex items-center space-x-2">
-              {isAnyEdited ? (
+              {isInsufficientInfo ? (
+                <>
+                  <span className="w-2 h-2 rounded-full bg-amber-500" />
+                  <span>
+                    {selectedModule && selectedSeverity
+                      ? 'Manual triage selection ready.'
+                      : 'Select module and severity to confirm.'}
+                  </span>
+                </>
+              ) : isAnyEdited ? (
                 <>
                   <span className="w-2 h-2 rounded-full bg-amber-500" />
                   <span>Human override detected — will log as training feedback.</span>
@@ -343,8 +441,8 @@ export default function PredictionPanel({ triageResult, reportText, onReset }) {
 
             <button
               onClick={handleConfirm}
-              disabled={isSubmitting}
-              className="w-full sm:w-auto px-6 py-2.5 rounded-lg bg-[#059669] hover:bg-[#047857] disabled:bg-[#E5E7EB] disabled:text-[#9CA3AF] text-white font-medium text-sm flex items-center justify-center space-x-2 transition shadow-xs"
+              disabled={isSubmitDisabled}
+              className="w-full sm:w-auto px-6 py-2.5 rounded-lg bg-[#059669] hover:bg-[#047857] disabled:bg-[#E5E7EB] disabled:text-[#9CA3AF] text-white font-medium text-sm flex items-center justify-center space-x-2 transition shadow-xs disabled:cursor-not-allowed"
             >
               <Check className="w-4 h-4" />
               <span>{isSubmitting ? 'Saving Feedback...' : 'Confirm & Save Routing'}</span>
@@ -360,8 +458,8 @@ export default function PredictionPanel({ triageResult, reportText, onReset }) {
 
               <button
                 onClick={handleGetSuggestion}
-                disabled={isFetchingSuggestion}
-                className="w-full sm:w-auto px-4 py-2 rounded-lg bg-[#F3E8FF] hover:bg-[#E9D5FF] border border-[#D8B4FE] text-[#6B21A8] font-medium text-xs flex items-center justify-center space-x-2 transition disabled:opacity-50 cursor-pointer"
+                disabled={isFetchingSuggestion || !selectedModule || !selectedSeverity}
+                className="w-full sm:w-auto px-4 py-2 rounded-lg bg-[#F3E8FF] hover:bg-[#E9D5FF] border border-[#D8B4FE] text-[#6B21A8] font-medium text-xs flex items-center justify-center space-x-2 transition disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
               >
                 {isFetchingSuggestion ? (
                   <Loader2 className="w-3.5 h-3.5 animate-spin text-[#6B21A8]" />
