@@ -179,7 +179,7 @@ def triage_report(payload: TriageRequest, db: Session = Depends(get_db)):
                 model="openai/gpt-oss-120b",
                 messages=[{"role": "user", "content": prompt}],
                 temperature=0.1,
-                max_tokens=60,
+                max_tokens=300,
             )
 
             raw_response = completion.choices[0].message.content.strip()
@@ -297,7 +297,7 @@ def suggest_fix(payload: SuggestFixRequest):
             model="openai/gpt-oss-120b",
             messages=[{"role": "user", "content": prompt}],
             temperature=0.3,
-            max_tokens=200,
+            max_tokens=500,
         )
 
         suggestion_text = completion.choices[0].message.content.strip()
